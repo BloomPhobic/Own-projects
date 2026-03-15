@@ -1,0 +1,30 @@
+class Parking {
+    int[] occupied = new int[0];
+ 
+    int closestFree() {
+        int l = occupied.length;
+        if (l == 0) { // If there is no car in the parking lot, return 1
+            return 1;
+        }
+        boolean[] isOccupied = new boolean[l + 2]; // A boolean array to keep track of the occupied spaces
+        for (int space : occupied) {
+            if(space >= 1 && space <= l + 1) {
+                isOccupied[space] = true; // Mark the corresponding occupied space in the boolean array 
+            }
+        }
+        
+        for (int i = 1; i <= l + 1; i++) {
+            if (!isOccupied[i]) { // If empty, return the index
+                return i;
+            }
+        }
+    return 1; // Fallback return value
+    }
+    
+    void occupy(int place) {
+        int[] new_occupied = new int[occupied.length + 1];
+        for (int i = 0; i < occupied.length; i++) new_occupied[i] = occupied[i];
+        new_occupied[occupied.length] = place;
+        occupied = new_occupied;
+    }
+}
