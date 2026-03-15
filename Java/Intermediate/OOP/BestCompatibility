@@ -1,0 +1,97 @@
+interface Compatibility<U> {
+    public boolean compatible(U u);
+    public U[] preferences();
+}
+
+class House {
+    String name;
+    public House(String name) { this.name = name; }
+    public String toString() { return name; }
+}
+class Client implements Compatibility<House> {
+    private House[] wantsToBuy = null;
+    String name;
+
+    public Client(String name) {
+        this.name = name;
+    }
+
+    public String toString() {
+        return name; 
+    }
+
+    // Add h to the list of houses this client would
+    // like to buy. 
+    public void likes(House h) {
+        if (compatible(h)) return;
+        wantsToBuy = Tools.append(wantsToBuy, h);
+    }
+
+    // Does this client want to buy the house h?
+    public boolean compatible(House h) {
+        if (wantsToBuy == null) return false; 
+        for (House g : wantsToBuy) {
+            if (g.equals(h)) return true;
+        }
+        return false;       
+    }
+    
+    // Return the list of houses this client would 
+    // like to buy.
+    public House[] preferences() {
+        return wantsToBuy;
+    }
+}
+
+class Pair<T,U> {
+    T left;
+    U right; 
+
+    public Pair(T left, U right) {
+        this.left = left;
+        this.right = right; 
+    }
+}
+
+class Match {
+    // Returns a maximal matching between objects of type T in the array ts
+    // and their objects of preference of type U. 
+
+    @SuppressWarnings("unchecked")
+    private static <U, T extends Compatibility<U>> Pair<T, U>[] matchHelper(T[] ts,int index, Pair<T,U>[] currentPairs) {
+        if (index == ts.length) { // Base case: no more clients/patients to match
+            @SuppressWarnings("unchecked")
+            Pair<T, U>[] empty = (Pair<T, U>[]) new Pair[0];
+            return empty;
+        }
+        T current = ts[index]; // Current client/patient
+        Pair<T,U>[] bestPairs = matchHelper(ts, index + 1, currentPairs); // Recursive call to find best matching for the rest of the clients/patients
+        U[] prefs = current.preferences(); // The preferences of the current client/patient
+        if (prefs == null) {return bestPairs;}
+
+        for (int i = 0; i < prefs.length; i++) { // Loop for each preference, the current would like
+            U u = prefs[i]; // The specific preference the current would like
+            if (!isUsed(u, currentPairs)) { // If the preference is taken, skip
+                Pair<T, U> newPair = new Pair<>(current, u); // new pair of current's preference
+                Pair<T, U>[] newCurrent = Tools.append(currentPairs, newPair); // Adds the new match to taken matches array
+                Pair<T, U>[] rest = matchHelper(ts, index + 1, newCurrent); // Recursive call to find best match for the rest
+                Pair<T, U>[] candidate = Tools.append(rest, newPair); // Candidate matching with the new pair added
+                if (candidate.length > bestPairs.length) {bestPairs = candidate;} // If candidate is better than old current best, replace
+        }
+    }
+    return bestPairs;
+    }
+
+    private static <T, U> boolean isUsed (U u, Pair<T, U>[] pairs) {
+        for (int i = 0; i < pairs.length; i++) {
+            if (pairs[i].right == u) {return true;} // If the preference is taken, return true
+        }
+    return false;
+    }
+
+    public static <U, T extends Compatibility<U>> Pair<T,U>[] match(T[] ts) {
+        @SuppressWarnings("unchecked")
+        Pair<T,U>[] empty = (Pair<T,U>[]) new Pair[0]; // An empty array of 'clients/patients'
+        return matchHelper(ts, 0, empty); // Index 0 since no match is yet done
+    }
+}
