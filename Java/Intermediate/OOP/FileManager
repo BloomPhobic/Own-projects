@@ -1,0 +1,162 @@
+abstract class MyRecord {
+    String name;
+    public MyRecord(String name) { this.name = name; }
+
+    public abstract String getPath(String targetName); // returns the path of the record with name targetName
+}
+
+class File extends MyRecord {
+    public File(String name) { super(name); }
+
+    @Override
+    public String getPath(String targetName) {
+        if (this.name.equals(targetName)) {
+            return "/" + this.name;
+        }
+        return null;
+    }
+}
+
+class Folder extends MyRecord {
+    MyRecord[] contents = {};
+
+    public Folder(String name) { 
+        super(name);
+    }
+
+    void add(MyRecord r) {
+        // inefficient copying, since we are using arrays
+        MyRecord[] newContents = new MyRecord[contents.length+1];
+        for (int i = 0; i < contents.length; i++) { 
+            newContents[i] = contents[i];
+        }
+        newContents[contents.length] = r;
+        contents = newContents;
+    }
+
+    @Override
+    public String getPath(String targetName) {
+        if (this.name.equals(targetName)) {
+            return ("/" + this.name); 
+        }
+        for (MyRecord r : contents) {
+            String subPath = r.getPath(targetName);
+            if (subPath != null) {
+                return ("/" + this.name + subPath);
+            }
+        }
+        return null;
+    }
+
+    void remove(MyRecord r) {
+        // inefficient copying, since we are using arrays
+        if (contents.length == 0) return;
+        MyRecord[] newContents = new MyRecord[contents.length-1];
+        int j = 0;
+        boolean found = false;
+        for (int i = 0; i < contents.length; i++) {
+            if (r != contents[i]) {
+                if (j < newContents.length) {
+                    newContents[j] = contents[i];
+                    j++;
+                }
+            } else {
+                found = true;
+            }
+        }
+        if (found) contents = newContents;
+    }
+}
+
+class Tools {
+
+    public static String search(String name, Folder f) { // Takes a name and a folder, returns its full path
+        if (f == null) return null;
+        return f.getPath(name);
+    }
+
+    public static boolean move(String from, String to, Folder root) { // Moves a record from one path to another
+
+        MyRecord target = findRecord(from, root); // Find the record to move
+        Folder parent = findParent(from, root); // Find the parent folder
+        Folder destination = findFolder(to, root); // Find the destination folder
+
+        if (target == null || parent == null || destination == null) { // If any one of them is not found, return false
+            return false;
+        }
+
+        parent.remove(target); // Remove the record from its current location
+        destination.add(target); // Add the record to its new location (destination)
+        return true;
+    }
+
+    private static MyRecord findRecord(String path, Folder current) { // Find the record to move
+
+        if (!path.contains("/")) { // If the path doesn't contain /, the record is in the current folder
+            for (MyRecord r : current.contents) { // Search the current folder for the record
+                if (r.name.equals(path)) { // If found return it
+                    return r;
+                }
+            }
+            return null;
+        }
+
+        String[] parts = path.split("/", 2); // Split the path into 2 parts, parts[0] name of the folder, parts[1] rest of the path
+
+        for (MyRecord r : current.contents) { // Search the current folder for the folder named parts[0]
+            if (r.name.equals(parts[0]) && r instanceof Folder) {
+                return findRecord(parts[1], (Folder) r); 
+            }
+        }
+
+        return null;
+    }
+
+    private static Folder findParent(String path, Folder current) { // Find the parent folder of a path
+
+        if (!path.contains("/")) { // If the path doesn't contain /, parent's in the curent folder
+            return current;
+        }
+
+        String[] parts = path.split("/", 2); // Does the sme splitting as findRecord
+
+        for (MyRecord r : current.contents) {
+            if (r.name.equals(parts[0]) && r instanceof Folder) {
+                return findParent(parts[1], (Folder) r);
+            }
+        }
+
+        return null;
+    }
+
+    private static Folder findFolder(String path, Folder current) { // Find the destination folder
+
+        if (path.equals("/")) { // If the path is /, the destination is the root
+            return current;
+        }
+
+        // Handle trailing slash if it exists
+        if (path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1); 
+        }
+
+        if (!path.contains("/")) { // If the path doesn't contain /, the folder is in the current folder
+            for (MyRecord r : current.contents) {
+                if (r.name.equals(path) && r instanceof Folder) {
+                    return (Folder) r;
+                }
+            }
+            return null;
+        }
+
+        String[] parts = path.split("/", 2); // Does the sme splitting as findRecord
+
+        for (MyRecord r : current.contents) {
+            if (r.name.equals(parts[0]) && r instanceof Folder) {
+                return findFolder(parts[1], (Folder) r);
+            }
+        }
+
+        return null;
+    }
+}
